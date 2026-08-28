@@ -1,0 +1,41 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "nac-amatori",
+	"main": "dist/server/index.js",
+	"compatibility_date": "2026-08-28",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"no_bundle": true,
+	"assets": {
+		"directory": "./dist/client",
+		"binding": "ASSETS"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "nac-amatori-db",
+			"database_id": "cdf279fc-4dc1-4745-baf3-fa62d07fb12e"
+		},
+		{
+			"binding": "nac_amatori_db",
+			"database_name": "nac-amatori-db",
+			"database_id": "cdf279fc-4dc1-4745-baf3-fa62d07fb12e",
+			"remote": true
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "nac-amatori-media"
+		},
+		{
+			"bucket_name": "nac-amatori-media",
+			"binding": "nac_amatori_media",
+			"remote": true
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}
