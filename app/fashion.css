@@ -78,3 +78,8 @@ footer{position:relative;background:#02070c;border-top:1px solid var(--line);col
 .staff-card p{padding-bottom:22px;color:#5b6f7f;line-height:1.6}
 @media(max-width:900px){.staff-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.staff-card-grid{grid-template-columns:1fr}}
+
+/* Calendario: VS/risultato centrato fra le squadre */
+.public-fixture{grid-template-columns:150px minmax(0,1fr) 80px minmax(0,1fr)!important}.public-team.home{text-align:right}.public-team.away{text-align:left}.public-vs{text-align:center!important;color:#0b5c87!important;font:800 15px "DM Mono",monospace}.public-fixture-meta{min-width:0}
+@media(max-width:900px){.public-fixture{grid-template-columns:120px minmax(0,1fr) 70px minmax(0,1fr)!important}}
+@media(max-width:700px){.public-fixture{grid-template-columns:1fr 48px 1fr!important}.public-fixture-meta{grid-column:1/-1}.public-team.home{text-align:right}.public-team.away{text-align:left}.public-vs{grid-column:auto!important}}
