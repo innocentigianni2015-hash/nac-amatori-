@@ -29,7 +29,7 @@ export default async function DedicatoAManuelPage() {
           “Ci sono compagni che lasciano il campo, ma non lasciano mai la squadra.”
         </p>
         <img
-          src="/manuel-calandrino-team.jpg"
+          src={st.media_manuel_team?`/api/media/${st.media_manuel_team.split("/").map(encodeURIComponent).join("/")}`:"/manuel-calandrino-team.jpg"}
           alt="NAC Amatori Castellana in una foto di squadra con lo striscione Ciao Cala dedicato a Manuel Calandrino"
           className="memorial-photo"
         />

@@ -2,21 +2,7 @@ import "./style.css";
 import PublicNav from "@/app/PublicNav";
 import { getPublicSnapshot } from "@/lib/nac-data";
 
-const seasons = [
-  ["2011/12", "/storia/2011-12.jpeg"],
-  ["2012/13", "/storia/2012-13.jpeg"],
-  ["2013/14", "/storia/2013-14.jpeg"],
-  ["2014/15", "/storia/2014-15.jpeg"],
-  ["2015/16", "/storia/2015-16.jpeg"],
-  ["2016/17", "/storia/2016-17.jpeg"],
-  ["2017/18", "/storia/2017-18.jpeg"],
-  ["2018/19", "/storia/2018-19.jpeg"],
-  ["2019/20", "/storia/2019-20.jpeg"],
-  ["2020/21", "/storia/2020-21.jpeg"],
-  ["2021/22", "/storia/2021-22.jpeg"],
-  ["2022/23", "/storia/2022-23.jpeg"],
-  ["2023/24", "/storia/2023-24.jpeg"],
-];
+const seasons = ["2011-12","2012-13","2013-14","2014-15","2015-16","2016-17","2017-18","2018-19","2019-20","2020-21","2021-22","2022-23","2023-24"];
 
 export default async function LaStoria() {
   const data=await getPublicSnapshot(); const st=data.settings;
@@ -37,7 +23,7 @@ export default async function LaStoria() {
 
     <section className="archiveSection">
       <div className="archiveHead"><small>02 — ARCHIVIO FOTOGRAFICO</small><h2>Le stagioni<br/><em>in una foto.</em></h2><p>Volti, maglie e gruppi diversi. La stessa NAC, stagione dopo stagione.</p></div>
-      <div className="seasonGrid">{seasons.map(([season, src], index)=><figure className={index%4===0?"wide":""} key={season}><img src={src} alt={`NAC Amatori Castellana stagione ${season}`}/><figcaption><span>STAGIONE</span><b>{season}</b></figcaption></figure>)}</div>
+      <div className="seasonGrid">{seasons.map((season,index)=>{const label=season.replace("-","/");const key=st[`media_history_${season}`];const src=key?`/api/media/${key.split("/").map(encodeURIComponent).join("/")}`:`/storia/${season}.jpeg`;return <figure className={index%4===0?"wide":""} key={season}><img src={src} alt={`NAC Amatori Castellana stagione ${label}`}/><figcaption><span>STAGIONE</span><b>{label}</b></figcaption></figure>})}</div>
     </section>
 
     <section className="historyClosing"><small>DAL 2011, INSIEME.</small><h2>Il calcio passa.<br/><em>Il gruppo resta.</em></h2><a href="/" className="historyButton">TORNA ALLA NAC →</a></section>
