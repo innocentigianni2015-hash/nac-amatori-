@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { CalendarDays, Camera, Check, CircleHelp, ExternalLink, Inbox, LayoutDashboard, MessageSquareText, Save, ShieldCheck, Star, Trash2, UserRoundPlus, UsersRound, X } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Player={id:string;name:string;number:number;role:string;groupName:string;bio:string;photoKey:string|null;active:number};
 type Event={id:string;type:string;title:string;startsAt:string;location:string;opponent:string;notes:string;published:number};
@@ -25,6 +24,7 @@ export default function AdminDashboard({initialData,userName,signOutPath}:{initi
   const [busy,setBusy]=useState(false);
   const [notice,setNotice]=useState("");
   const [attendanceEvent,setAttendanceEvent]=useState(initialData.events.find(e=>e.type==="allenamento")?.id||"");
+  const [tab,setTab]=useState("overview");
 
   const mutate=async(action:string,payload:Record<string,unknown>={})=>{
     setBusy(true);setNotice("");
@@ -50,61 +50,54 @@ export default function AdminDashboard({initialData,userName,signOutPath}:{initi
     <aside className="admin-side"><a className="admin-mark" href="/"><img src="/nac-scudetto.png" alt="NAC"/><span>NAC<small>CONTROL ROOM</small></span></a><div className="admin-identity"><ShieldCheck/><div><b>{userName}</b><small>Amministratore</small></div></div><a className="admin-public" href="/" target="_blank">Apri sito pubblico <ExternalLink/></a><a className="admin-signout" href={signOutPath} target="_top">Esci dall’admin</a></aside>
     <section className="admin-workspace">
       <header className="admin-top"><div><small>STAGIONE 2026/27</small><h1>Gestione NAC</h1></div><div className={`admin-notice ${notice?"show":""}`}>{busy?"Salvataggio…":notice}</div></header>
-      <Tabs defaultValue="overview" className="admin-tabs">
-        <TabsList className="admin-tabs-list">
-          <TabsTrigger value="overview"><LayoutDashboard/>Panoramica</TabsTrigger>
-          <TabsTrigger value="players"><UsersRound/>Rosa</TabsTrigger>
-          <TabsTrigger value="staff"><UsersRound/>Staff</TabsTrigger>
-          <TabsTrigger value="agenda"><CalendarDays/>Agenda</TabsTrigger>
-          <TabsTrigger value="league"><LayoutDashboard/>Campionato</TabsTrigger>
-          <TabsTrigger value="votes"><Star/>Voti {pendingVotes>0&&<i>{pendingVotes}</i>}</TabsTrigger>
-          <TabsTrigger value="messages"><Inbox/>Messaggi {pendingMessages>0&&<i>{pendingMessages}</i>}</TabsTrigger>
-          <TabsTrigger value="content"><MessageSquareText/>Contenuti</TabsTrigger>
-        </TabsList>
+      <div className="admin-tabs">
+        <div className="admin-tabs-list">
+          {[['overview','Panoramica'],['players','Rosa'],['staff','Staff'],['agenda','Agenda'],['league','Campionato'],['votes','Voti'],['messages','Messaggi'],['content','Contenuti']].map(([id,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}>{label}</button>)}
+        </div>
 
-        <TabsContent value="overview" className="admin-panel">
+        {tab==="overview"&&<section className="admin-panel">
           <SectionHead eyebrow="OGGI" title="Il colpo d’occhio" text="Tutto quello che serve alla squadra, in un’unica schermata."/>
           <div className="admin-kpis"><Kpi value={data.players.filter(p=>p.active).length} label="Giocatori attivi"/><Kpi value={data.events.length} label="Appuntamenti"/><Kpi value={pendingVotes} label="Voti da controllare"/><Kpi value={pendingMessages} label="Messaggi nuovi"/></div>
           <div className="admin-overview-grid"><article className="admin-feature"><small>PROSSIMO APPUNTAMENTO</small>{nextEvent?<><h3>{nextEvent.title}</h3><p>{localDate(nextEvent.startsAt)}<br/>{nextEvent.location}</p><button onClick={()=>setAttendanceEvent(nextEvent.id)}>Gestisci le presenze</button></>:<><h3>Agenda vuota</h3><p>Inserisci il prossimo allenamento o la prossima partita.</p></>}</article><article className="admin-feature cyan"><small>AZIONE RAPIDA</small><h3>Completa la rosa</h3><p>Importa la rosa predisposta e sostituisci “Da annunciare” con i nomi reali.</p><button onClick={()=>mutate("player.seed")}>Importa rosa base</button></article></div>
-        </TabsContent>
+        </section>}
 
-        <TabsContent value="players" className="admin-panel">
+        {tab==="players"&&<section className="admin-panel">
           <SectionHead eyebrow="ROSA & FOTO" title="Tutti i giocatori" text="Crea e aggiorna le card che appariranno automaticamente nel sito."/>
           <NewPlayer players={data.players} onSave={payload=>mutate("player.create",payload)} onSeed={()=>mutate("player.seed")}/>
           <div className="admin-player-list">{data.players.map(player=><PlayerEditor key={player.id} player={player} busy={busy} onSave={payload=>mutate("player.update",payload)} onToggle={()=>mutate("player.toggle",{id:player.id,active:!player.active})} onUpload={file=>upload("player",player.id,file)}/>)}</div>
-        </TabsContent>
+        </section>}
 
-        <TabsContent value="staff" className="admin-panel">
+        {tab==="staff"&&<section className="admin-panel">
           <SectionHead eyebrow="DIRIGENTI & STAFF" title="Società e staff tecnico" text="Crea le card con foto, ruolo e biografia che appaiono nella pagina Staff."/>
           <StaffAdmin staff={data.staff} busy={busy} onAction={mutate} onUpload={(id,file)=>upload("staff",id,file)}/>
-        </TabsContent>
+        </section>}
 
-        <TabsContent value="agenda" className="admin-panel">
+        {tab==="agenda"&&<section className="admin-panel">
           <SectionHead eyebrow="AGENDA & PRESENZE" title="Chi viene. Chi non viene." text="Programma allenamenti, amichevoli e partite; poi registra la disponibilità di ogni giocatore."/>
           <NewEvent onSave={payload=>mutate("event.create",payload)}/>
           <div className="agenda-layout"><div className="event-list">{data.events.map(event=><EventEditor key={event.id} event={event} busy={busy} onSave={payload=>mutate("event.update",payload)} onDelete={()=>mutate("event.delete",{id:event.id})} onAttendance={()=>setAttendanceEvent(event.id)}/>)}</div><AttendanceBoard data={data} eventId={attendanceEvent} onEvent={setAttendanceEvent} onSet={(payload)=>mutate("attendance.set",payload)}/></div>
-        </TabsContent>
+        </section>}
 
-        <TabsContent value="league" className="admin-panel">
+        {tab==="league"&&<section className="admin-panel">
           <SectionHead eyebrow="RISULTATI & CLASSIFICA" title="Motore campionato" text="Inserisci il risultato una sola volta: calendario e classifica si aggiornano automaticamente."/>
           <LeagueAdmin matches={data.matches} standings={data.standings} busy={busy} onAction={mutate}/>
-        </TabsContent>
+        </section>}
 
-        <TabsContent value="votes" className="admin-panel">
+        {tab==="votes"&&<section className="admin-panel">
           <SectionHead eyebrow="MIGLIORE IN CAMPO" title="Voti dei tifosi" text="Approva, archivia o elimina i voti ricevuti dal box 04."/>
           <ModerationList items={data.votes} kind="vote" onAction={mutate}/>
-        </TabsContent>
+        </section>}
 
-        <TabsContent value="messages" className="admin-panel">
+        {tab==="messages"&&<section className="admin-panel">
           <SectionHead eyebrow="SPOGLIATOIO DIGITALE" title="Messaggi ai giocatori" text="Leggi e modera i messaggi lasciati dai tifosi alla squadra."/>
           <ModerationList items={data.messages} kind="message" onAction={mutate}/>
-        </TabsContent>
+        </section>}
 
-        <TabsContent value="content" className="admin-panel">
+        {tab==="content"&&<section className="admin-panel">
           <SectionHead eyebrow="SITO & PARTNER" title="Contenuti pubblici" text="Aggiorna testi, collegamenti social e sponsor senza toccare il sito."/>
           <ContentEditor settings={data.settings} sponsors={data.sponsors} busy={busy} onSave={settings=>mutate("settings.setMany",{settings})} onSponsor={mutate} onUpload={upload}/>
-        </TabsContent>
-      </Tabs>
+        </section>}
+      </div>
     </section>
   </main>;
 }
