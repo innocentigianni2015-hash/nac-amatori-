@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -7,80 +8,62 @@ export type ChatGPTUser = {
   fullName: string | null;
 };
 
-const USER_EMAIL_HEADER = "oai-authenticated-user-email";
-const CLOUDFLARE_ACCESS_EMAIL_HEADER = "cf-access-authenticated-user-email";
-const USER_FULL_NAME_HEADER = "oai-authenticated-user-full-name";
-const USER_FULL_NAME_ENCODING_HEADER =
-  "oai-authenticated-user-full-name-encoding";
-const PERCENT_ENCODED_UTF8 = "percent-encoded-utf-8";
-const SIGN_IN_PATH = "/signin-with-chatgpt";
-const SIGN_OUT_PATH = "/signout-with-chatgpt";
-const CALLBACK_PATH = "/callback";
+type AdminEnv = {
+  ADMIN_PASSWORD?: string;
+  ADMIN_SESSION_SECRET?: string;
+};
+
+const COOKIE_NAME = "nac_admin_session";
+const SESSION_SECONDS = 60 * 60 * 24 * 7;
+const ADMIN_EMAIL = "admin@nacamatori.local";
+const ADMIN_NAME = "Gianni Innocenti";
+
+function adminEnv(): AdminEnv {
+  return env as unknown as AdminEnv;
+}
+async function hmac(value:string) {
+  const secret=adminEnv().ADMIN_SESSION_SECRET;
+  if(!secret) throw new Error("ADMIN_SESSION_SECRET non configurato");
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get(USER_EMAIL_HEADER) ?? requestHeaders.get(CLOUDFLARE_ACCESS_EMAIL_HEADER);
-  if (!email) return null;
-
-  const encodedFullName = requestHeaders.get(USER_FULL_NAME_HEADER);
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get(USER_FULL_NAME_ENCODING_HEADER) === PERCENT_ENCODED_UTF8
-      ? safeDecodeURIComponent(encodedFullName)
-      : null;
-
-  return {
-    displayName: fullName ?? email,
-    email,
-    fullName,
-  };
+  const requestHeaders=await headers();
+  const cookie=requestHeaders.get("cookie")||"";
+  const token=cookie.split(/;\s*/).find(x=>x.startsWith(`${COOKIE_NAME}=`))?.split("=")[1];
+  if(!token) return null;
+  const [exp,sig]=decodeURIComponent(token).split(".");
+  if(!exp||!sig||Number(exp)<Math.floor(Date.now()/1000)) return null;
+  const expected=await hmac(exp);
+  if(sig!==expected) return null;
+  return {displayName:ADMIN_NAME,email:ADMIN_EMAIL,fullName:ADMIN_NAME};
 }
 
-export async function requireChatGPTUser(
-  returnTo: string,
-): Promise<ChatGPTUser> {
-  const user = await getChatGPTUser();
-  if (user) return user;
-
-  redirect(chatGPTSignInPath(returnTo));
+export async function requireChatGPTUser(returnTo:string):Promise<ChatGPTUser>{
+  const user=await getChatGPTUser();
+  if(user) return user;
+  redirect(`/admin/login?return_to=${encodeURIComponent(returnTo)}`);
+}
+export function chatGPTSignOutPath(_returnTo="/") {
+  return "/admin/logout";
 }
 
-export function chatGPTSignInPath(returnTo: string): string {
-  const safeReturnTo = safeRelativeReturnPath(returnTo);
-  return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
+export async function verifyAdminPassword(password:string){
+  const expected=adminEnv().ADMIN_PASSWORD||"";
+  if(!expected) return false;
+  if(password.length!==expected.length) return false;
+  let diff=0; for(let i=0;i<password.length;i++) diff|=password.charCodeAt(i)^expected.charCodeAt(i);
+  return diff===0;
 }
 
-export function chatGPTSignOutPath(_returnTo = "/"): string {
-  return "/cdn-cgi/access/logout";
+export async function createAdminSessionCookie(){
+  const exp=String(Math.floor(Date.now()/1000)+SESSION_SECONDS);
+  const sig=await hmac(exp);
+  return `${COOKIE_NAME}=${encodeURIComponent(`${exp}.${sig}`)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_SECONDS}`;
 }
 
-function safeRelativeReturnPath(value: string): string {
-  if (!value.startsWith("/") || value.startsWith("//")) return "/";
-
-  let url: URL;
-  try {
-    url = new URL(value, "https://app.local");
-  } catch {
-    return "/";
-  }
-  if (url.origin !== "https://app.local") return "/";
-  if (isReservedAuthPath(url.pathname)) return "/";
-
-  return `${url.pathname}${url.search}${url.hash}`;
-}
-
-function isReservedAuthPath(pathname: string): boolean {
-  return (
-    pathname === SIGN_IN_PATH ||
-    pathname === SIGN_OUT_PATH ||
-    pathname === CALLBACK_PATH
-  );
-}
-
-function safeDecodeURIComponent(value: string): string | null {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return null;
-  }
+export function clearAdminSessionCookie(){
+  return `${COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
 }
