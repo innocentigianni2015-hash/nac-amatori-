@@ -2,6 +2,21 @@
 
 set -euo pipefail
 
+pause_on_error() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    echo
+    echo "===================================================="
+    echo "  PUBBLICAZIONE INTERROTTA"
+    echo "===================================================="
+    echo "Lascia aperta questa finestra e invia le ultime righe a ChatGPT."
+    echo
+    read -r -p "Premi Invio per chiudere..."
+  fi
+}
+
+trap pause_on_error EXIT
+
 cd "$(dirname "$0")"
 
 DB_NAME="nac-amatori-db"
@@ -85,7 +100,7 @@ if ! npx wrangler r2 bucket info "$R2_NAME" >/dev/null 2>&1; then
 fi
 
 echo
-echo "5/7 - Creazione delle tabelle per giocatori, voti e presenze..."
+echo "5/7 - Aggiornamento database, calendario e classifica..."
 npx wrangler d1 execute "$DB_NAME" --remote --file "$MIGRATION_FILE"
 
 echo
