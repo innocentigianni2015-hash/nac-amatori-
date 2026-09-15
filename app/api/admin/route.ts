@@ -123,7 +123,7 @@ export async function POST(request:Request) {
         break;
       }
       case "settings.setMany": {
-        const allowed=new Set(["hero_title","hero_text","history_title","history_text","partner_text","instagram","facebook","whatsapp"]);
+        const allowed=new Set(["hero_title","hero_text","history_title","history_text","partner_text","staff_text","instagram","facebook","whatsapp"]);
         const raw=p.settings && typeof p.settings==="object" ? p.settings as Record<string,unknown> : {};
         const entries=Object.entries(raw).filter(([key])=>allowed.has(key));
         if(entries.length) await db.batch(entries.map(([key,value])=>db.prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP").bind(key,cleanText(value,2400))));
