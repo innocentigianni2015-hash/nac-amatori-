@@ -57,6 +57,26 @@ export async function POST(request:Request) {
         await db.prepare("UPDATE players SET active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(p.active?1:0,cleanText(p.id,100)).run();
         break;
       }
+      case "staff.create": {
+        const name=cleanText(p.name,120), role=cleanText(p.role,120);
+        if(!name||!role) throw new Error("Nome e ruolo sono obbligatori");
+        await db.prepare("INSERT INTO staff (id, name, role, bio, active, sort_order) VALUES (?, ?, ?, ?, 1, ?)").bind(uid("staff"),name,role,cleanText(p.bio,1200),Number(p.sortOrder)||0).run();
+        break;
+      }
+      case "staff.update": {
+        const id=cleanText(p.id,100),name=cleanText(p.name,120),role=cleanText(p.role,120);
+        if(!id||!name||!role) throw new Error("Dati staff non validi");
+        await db.prepare("UPDATE staff SET name=?, role=?, bio=?, active=?, sort_order=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name,role,cleanText(p.bio,1200),p.active===false?0:1,Number(p.sortOrder)||0,id).run();
+        break;
+      }
+      case "staff.toggle": {
+        await db.prepare("UPDATE staff SET active=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(p.active?1:0,cleanText(p.id,100)).run();
+        break;
+      }
+      case "staff.delete": {
+        await db.prepare("DELETE FROM staff WHERE id=?").bind(cleanText(p.id,100)).run();
+        break;
+      }
       case "event.create": {
         const title=cleanText(p.title,140), startsAt=cleanText(p.startsAt,40), type=cleanText(p.type,40)||"allenamento";
         if (!title||!startsAt) throw new Error("Titolo e data sono obbligatori");
@@ -123,7 +143,9 @@ export async function POST(request:Request) {
         break;
       }
       case "settings.setMany": {
-        const allowed=new Set(["hero_title","hero_text","history_title","history_text","partner_text","staff_text","instagram","facebook","whatsapp"]);
+        const allowed=new Set(["hero_title","hero_text","history_title","history_text","partner_text","instagram","facebook","whatsapp",
+          "history_intro_title","history_intro_p1","history_intro_p2","history_body_p1","history_body_p2","history_body_p3",
+          "manuel_title","manuel_intro","manuel_story_1","manuel_story_2","manuel_story_3","manuel_quote"]);
         const raw=p.settings && typeof p.settings==="object" ? p.settings as Record<string,unknown> : {};
         const entries=Object.entries(raw).filter(([key])=>allowed.has(key));
         if(entries.length) await db.batch(entries.map(([key,value])=>db.prepare("INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP").bind(key,cleanText(value,2400))));

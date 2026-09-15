@@ -9,6 +9,7 @@ export type VoteRow = { id:string; playerNumber:number; rating:number; eventId:s
 export type MessageRow = { id:string; playerNumber:number|null; senderName:string; body:string; status:string; createdAt:string; playerName:string|null };
 export type MatchDbRow = MatchRow;
 export type SponsorRow = { id:string; name:string; website:string; logoKey:string|null; active:number; sortOrder:number };
+export type StaffRow = { id:string; name:string; role:string; bio:string; photoKey:string|null; active:number; sortOrder:number };
 
 export function getD1(): D1Database {
   if (!env.DB) throw new Error("Database NAC non disponibile");
@@ -39,8 +40,9 @@ export async function requireAdminApi() {
 
 export async function getAdminSnapshot() {
   const db=getD1();
-  const [players,events,attendance,votes,messages,sponsors,settings,matches]=await Promise.all([
+  const [players,staff,events,attendance,votes,messages,sponsors,settings,matches]=await Promise.all([
     db.prepare("SELECT id, name, number, role, group_name AS groupName, bio, photo_key AS photoKey, active FROM players ORDER BY active DESC, number ASC").all<PlayerRow>(),
+    db.prepare("SELECT id, name, role, bio, photo_key AS photoKey, active, sort_order AS sortOrder FROM staff ORDER BY active DESC, sort_order ASC, name ASC").all<StaffRow>(),
     db.prepare("SELECT id, type, title, starts_at AS startsAt, location, opponent, notes, published FROM events ORDER BY starts_at DESC").all<EventRow>(),
     db.prepare("SELECT id, event_id AS eventId, player_id AS playerId, status, note FROM attendance").all<AttendanceRow>(),
     db.prepare("SELECT v.id, v.player_number AS playerNumber, v.rating, v.event_id AS eventId, v.fan_name AS fanName, v.message, v.status, v.created_at AS createdAt, p.name AS playerName FROM votes v LEFT JOIN players p ON p.number = v.player_number ORDER BY v.created_at DESC LIMIT 250").all<VoteRow>(),
@@ -50,7 +52,7 @@ export async function getAdminSnapshot() {
     db.prepare("SELECT id, round, phase, home, away, scheduled_at AS scheduledAt, source_date AS sourceDate, time, field, home_goals AS homeGoals, away_goals AS awayGoals, status, source_anomaly AS sourceAnomaly FROM matches ORDER BY scheduled_at ASC").all<MatchDbRow>(),
   ]);
   return {
-    players:players.results, events:events.results, attendance:attendance.results,
+    players:players.results, staff:staff.results, events:events.results, attendance:attendance.results,
     votes:votes.results, messages:messages.results, sponsors:sponsors.results,
     settings:Object.fromEntries(settings.results.map(x=>[x.key,x.value])),
     matches:matches.results, standings:calculateStandings(matches.results),
@@ -59,14 +61,15 @@ export async function getAdminSnapshot() {
 
 export async function getPublicSnapshot() {
   const db=getD1();
-  const [players,events,sponsors,settings,matches]=await Promise.all([
+  const [players,staff,events,sponsors,settings,matches]=await Promise.all([
     db.prepare("SELECT id, name, number, role, group_name AS groupName, bio, photo_key AS photoKey, active FROM players WHERE active = 1 ORDER BY number ASC").all<PlayerRow>(),
+    db.prepare("SELECT id, name, role, bio, photo_key AS photoKey, active, sort_order AS sortOrder FROM staff WHERE active = 1 ORDER BY sort_order ASC, name ASC").all<StaffRow>(),
     db.prepare("SELECT id, type, title, starts_at AS startsAt, location, opponent, notes, published FROM events WHERE published = 1 AND starts_at >= datetime('now', '-1 day') ORDER BY starts_at ASC LIMIT 12").all<EventRow>(),
     db.prepare("SELECT id, name, website, logo_key AS logoKey, active, sort_order AS sortOrder FROM sponsors WHERE active = 1 ORDER BY sort_order ASC, name ASC").all<SponsorRow>(),
     db.prepare("SELECT key, value FROM site_settings").all<{key:string;value:string}>(),
     db.prepare("SELECT id, round, phase, home, away, scheduled_at AS scheduledAt, source_date AS sourceDate, time, field, home_goals AS homeGoals, away_goals AS awayGoals, status, source_anomaly AS sourceAnomaly FROM matches ORDER BY scheduled_at ASC").all<MatchDbRow>(),
   ]);
-  return {players:players.results,events:events.results,sponsors:sponsors.results,settings:Object.fromEntries(settings.results.map(x=>[x.key,x.value])),matches:matches.results,standings:calculateStandings(matches.results)};
+  return {players:players.results,staff:staff.results,events:events.results,sponsors:sponsors.results,settings:Object.fromEntries(settings.results.map(x=>[x.key,x.value])),matches:matches.results,standings:calculateStandings(matches.results)};
 }
 
 export function cleanText(value:unknown, max=500) {

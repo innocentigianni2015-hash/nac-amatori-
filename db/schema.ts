@@ -25,6 +25,18 @@ export const players = sqliteTable("players", {
   ...timestamps,
 }, (table) => [uniqueIndex("players_number_unique").on(table.number)]);
 
+
+export const staff = sqliteTable("staff", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  role: text("role").notNull(),
+  bio: text("bio").notNull().default(""),
+  photoKey: text("photo_key"),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  ...timestamps,
+}, (table) => [index("staff_sort_idx").on(table.active, table.sortOrder, table.name)]);
+
 export const events = sqliteTable("events", {
   id: text("id").primaryKey(),
   type: text("type").notNull().default("allenamento"),

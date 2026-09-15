@@ -1,13 +1,15 @@
 import "./style.css";
 import HeartForManuel from "./HeartForManuel";
 import PublicNav from "@/app/PublicNav";
+import { getPublicSnapshot } from "@/lib/nac-data";
 
 export const metadata = {
   title: "Dedicato a Manuel | NAC Amatori Castellana",
   description: "Una pagina dedicata al ricordo di Manuel Calandrino.",
 };
 
-export default function DedicatoAManuelPage() {
+export default async function DedicatoAManuelPage() {
+  const data=await getPublicSnapshot(); const st=data.settings;
   return (
     <main className="memorial-page">
       <header className="memorial-nav-wrap"><PublicNav/></header>
@@ -15,11 +17,10 @@ export default function DedicatoAManuelPage() {
       <section className="memorial-hero">
         <div className="memorial-kicker">PER SEMPRE CON NOI</div>
         <h1>
-          Dedicato a <em>Manuel</em>
+          {st.manuel_title||<>Dedicato a <em>Manuel</em></>}
         </h1>
         <p>
-          Ci sono persone che entrano in una squadra e diventano parte della sua storia.
-          Manuel Calandrino per la NAC è stato questo: un compagno, un amico, uno di noi.
+          {st.manuel_intro||"Ci sono persone che entrano in una squadra e diventano parte della sua storia. Manuel Calandrino per la NAC è stato questo: un compagno, un amico, uno di noi."}
         </p>
       </section>
 
@@ -44,17 +45,13 @@ export default function DedicatoAManuelPage() {
         </div>
         <div className="memorial-copy">
           <p>
-            Nel 2025 la NAC Amatori Castellana è stata colpita da una perdita profondissima:
-            la scomparsa di Manuel Calandrino, che faceva parte del gruppo da circa tre anni.
+            {st.manuel_story_1||"Nel 2025 la NAC Amatori Castellana è stata colpita da una perdita profondissima: la scomparsa di Manuel Calandrino, che faceva parte del gruppo da circa tre anni."}
           </p>
           <p>
-            Per tutti noi Manuel non è soltanto un nome da ricordare, ma una presenza che ha
-            lasciato un segno vero nello spogliatoio, nelle serate insieme, negli allenamenti
-            e nelle partite condivise con questa maglia.
+            {st.manuel_story_2||"Per tutti noi Manuel non è soltanto un nome da ricordare, ma una presenza che ha lasciato un segno vero nello spogliatoio, nelle serate insieme, negli allenamenti e nelle partite condivise con questa maglia."}
           </p>
           <p>
-            Questa pagina nasce per custodire il suo ricordo con rispetto, affetto e gratitudine.
-            Perché ci sono persone che continuano a far parte di una squadra anche oltre il tempo.
+            {st.manuel_story_3||"Questa pagina nasce per custodire il suo ricordo con rispetto, affetto e gratitudine. Perché ci sono persone che continuano a far parte di una squadra anche oltre il tempo."}
           </p>
         </div>
       </section>
@@ -63,8 +60,7 @@ export default function DedicatoAManuelPage() {
 
       <section className="memorial-quote">
         <blockquote>
-          “Ogni volta che la NAC entra in campo, una parte di chi ha condiviso questa maglia
-          continua a esserci.”
+          {st.manuel_quote||"Ogni volta che la NAC entra in campo, una parte di chi ha condiviso questa maglia continua a esserci."}
         </blockquote>
         <p>Ciao Cala. Per sempre con noi.</p>
       </section>

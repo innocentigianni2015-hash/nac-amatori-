@@ -69,3 +69,12 @@ footer{position:relative;background:#02070c;border-top:1px solid var(--line);col
 
 @media(max-width:900px){.public-nav{height:auto;min-height:92px;align-items:flex-start;padding-top:18px;padding-bottom:18px}.public-nav .links{gap:12px}}
 @media(max-width:700px){.public-nav{display:block;padding:16px 18px}.public-nav .brand{margin-bottom:14px}.public-nav .links{display:flex!important;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:2px 0 8px;scrollbar-width:thin}.public-nav .links a{font-size:9px}.public-page-head .links{display:flex!important}.public-page-head{padding-top:0}.public-page-title{margin-top:30px}.public-table{min-width:700px}.public-fixture{padding:14px}.memorial-nav-wrap .public-nav,.historyHero .public-nav{margin-left:-14px;margin-right:-14px;width:auto}}
+
+/* Staff cards */
+.staff-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.staff-card{padding:0;overflow:hidden;background:#fff}
+.staff-card img{width:100%;aspect-ratio:4/5;object-fit:cover;margin:0 0 18px}
+.staff-card h3,.staff-card small,.staff-card p{margin-left:20px;margin-right:20px}
+.staff-card p{padding-bottom:22px;color:#5b6f7f;line-height:1.6}
+@media(max-width:900px){.staff-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.staff-card-grid{grid-template-columns:1fr}}
