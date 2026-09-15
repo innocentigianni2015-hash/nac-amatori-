@@ -1,4 +1,5 @@
 import "./style.css";
+import PublicNav from "@/app/PublicNav";
 
 const seasons = [
   ["2011/12", "/storia/2011-12.jpeg"],
@@ -19,7 +20,7 @@ const seasons = [
 export default function LaStoria() {
   return <main className="historyPage">
     <header className="historyHero">
-      <nav className="historyNav"><a className="historyBrand" href="/"><img src="/nac-scudetto.png" alt="NAC Amatori Castellana"/><span>NAC<br/><i>AMATORI</i></span></a><a className="backHome" href="/">← TORNA ALLA HOME</a></nav>
+      <PublicNav/>
       <div className="historyHeroCopy"><small>DAL 2011 · CASTEL GOFFREDO</small><h1>La nostra<br/><em>storia.</em></h1><p>Una squadra nata per scelta. Cresciuta attraverso stagioni, cambiamenti, amicizie e la stessa voglia di stare insieme intorno a un pallone.</p></div>
     </header>
 

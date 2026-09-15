@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import PublicNav from "./PublicNav";
 
 type Player={id:string;name:string;number:number;role:string;groupName:string;bio:string;photoUrl:string|null};
 type NacEvent={id:string;type:string;title:string;startsAt:string;location:string;opponent:string;notes:string};
@@ -51,7 +52,7 @@ export default function Home(){
   };
 
   return <main>
-    <section className="hero"><nav><a className="brand" href="#top"><img src="/nac-scudetto.png" alt="Scudetto NAC"/><span>NAC<br/><i>AMATORI</i></span></a><div className="links"><a href="/la-storia">STORIA</a><a href="/squadra">SQUADRA</a><a href="/dirigenti-staff">STAFF</a><a href="/calendario">CALENDARIO</a><a href="/classifica">CLASSIFICA</a><a href="/sponsor-amici">SPONSOR</a><a href="/tifosi-amici">TIFOSI</a></div></nav><div className="intro" id="top"><small>MSP ITALIA · OPEN A 11 · GIRONE 2</small><h1>{heroLines.map((line,index)=><span key={line}>{index===1?<em>{line}</em>:line}{index<heroLines.length-1&&<br/>}</span>)}</h1><p>{settings.hero_text||"Passione, unione e rispetto. In campo ogni venerdì. Insieme, sempre."}</p><a className="button white" href="/squadra">VEDI LA ROSA →</a></div><div className="stripes"/></section>
+    <section className="hero"><PublicNav/><div className="intro" id="top"><small>MSP ITALIA · OPEN A 11 · GIRONE 2</small><h1>{heroLines.map((line,index)=><span key={line}>{index===1?<em>{line}</em>:line}{index<heroLines.length-1&&<br/>}</span>)}</h1><p>{settings.hero_text||"Passione, unione e rispetto. In campo ogni venerdì. Insieme, sempre."}</p><a className="button white" href="/squadra">VEDI LA ROSA →</a></div><div className="stripes"/></section>
     <div className="ticker">PASSIONE　✦　 UNITÀ　✦　 RISPETTO　✦　 CASTELLANA</div>
     <section style={{background:"#06233e",color:"white",padding:"76px 28px"}}><div style={{maxWidth:1100,margin:"auto",display:"grid",gridTemplateColumns:"1fr auto",gap:32,alignItems:"end"}}><div><small style={{fontFamily:"DM Mono",letterSpacing:".15em",color:"#77c9f2"}}>NAC / MANIFESTO</small><h2 style={{marginBottom:0}}>Non siamo qui<br/><em>per partecipare.</em></h2></div><p style={{maxWidth:350,lineHeight:1.75,color:"#c8eaf9"}}>Ogni venerdì portiamo in campo Castellana: amicizia, carattere e quella voglia precisa di non mollare mai.</p></div></section>
 

@@ -1,5 +1,6 @@
 import "./style.css";
 import HeartForManuel from "./HeartForManuel";
+import PublicNav from "@/app/PublicNav";
 
 export const metadata = {
   title: "Dedicato a Manuel | NAC Amatori Castellana",
@@ -9,13 +10,7 @@ export const metadata = {
 export default function DedicatoAManuelPage() {
   return (
     <main className="memorial-page">
-      <header className="memorial-nav">
-        <a href="/" className="memorial-brand">
-          <img src="/nac-scudetto.png" alt="NAC Amatori Castellana" />
-          <span>NAC AMATORI CASTELLANA</span>
-        </a>
-        <a href="/" className="memorial-back">Torna al sito</a>
-      </header>
+      <header className="memorial-nav-wrap"><PublicNav/></header>
 
       <section className="memorial-hero">
         <div className="memorial-kicker">PER SEMPRE CON NOI</div>

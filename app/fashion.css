@@ -45,3 +45,27 @@ footer{position:relative;background:#02070c;border-top:1px solid var(--line);col
 
 /* Dedicated public pages */
 .public-page{min-height:100vh;background:#f7f5f0}.public-page-head{background:#06233e;color:#fff;padding:28px 0 72px}.public-page-head nav{height:78px}.public-page-head .links{gap:14px;flex-wrap:wrap;justify-content:flex-end}.public-page-head .links a{font-size:9px}.public-page-title{max-width:1160px;margin:54px auto 0;padding:0 28px}.public-page-title small{font:10px "DM Mono",monospace;letter-spacing:.16em;color:#77c9f2}.public-page-title h1{font:700 clamp(48px,7vw,86px)/.92 "Playfair Display";letter-spacing:-.055em;margin:14px 0}.public-page-title p{max-width:680px;color:#c8eaf9;line-height:1.7}.public-page-body{max-width:1160px;margin:auto;padding:70px 28px 110px}.public-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.public-card{background:white;border:1px solid #d5e0e6;padding:22px}.public-card img{width:100%;aspect-ratio:4/5;object-fit:cover;margin-bottom:16px}.public-card h3{margin:0 0 6px}.public-card small{font:10px "DM Mono",monospace;color:#7190a3}.public-fixture{display:grid;grid-template-columns:150px 1fr 1fr 80px;gap:16px;padding:16px;border-bottom:1px solid #d5e0e6;align-items:center}.public-fixture.is-nac{background:#d9f1fe;border-left:5px solid #77c9f2}.public-table{width:100%;border-collapse:collapse;min-width:760px}.public-table th,.public-table td{padding:13px 10px;border-bottom:1px solid #d5e0e6;text-align:center}.public-table th:nth-child(2),.public-table td:nth-child(2){text-align:left}.public-table tr.is-nac{background:#d9f1fe;font-weight:800}.staff-list{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.staff-person{background:#fff;border:1px solid #d5e0e6;padding:28px}.staff-person h3{margin:0 0 6px}.staff-person p{margin:0;color:#7190a3}.empty-note{padding:28px;background:#fff;border:1px dashed #9bb3c1;color:#45687d}.page-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.sponsor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.sponsor-card{background:white;border:1px solid #d5e0e6;padding:24px;text-decoration:none;color:#06233e}.sponsor-card img{max-width:180px;max-height:80px;object-fit:contain;display:block;margin-bottom:16px}.fan-page-form{max-width:720px;display:grid;gap:12px;background:#fff;border:1px solid #d5e0e6;padding:28px}.fan-page-form input,.fan-page-form select,.fan-page-form textarea{width:100%;padding:12px;border:1px solid #c9d6de;background:#fff}.fan-page-form textarea{min-height:120px}.fan-page-form .stars button{cursor:pointer}@media(max-width:900px){.public-grid,.sponsor-grid{grid-template-columns:repeat(2,1fr)}.public-fixture{grid-template-columns:1fr 1fr}.staff-list{grid-template-columns:1fr}}@media(max-width:700px){.public-page-head .links{display:none}.public-grid,.sponsor-grid{grid-template-columns:1fr}.public-fixture{grid-template-columns:1fr}.public-page-body{padding-top:45px}}
+
+/* Public navigation + readability fixes */
+.public-nav{max-width:1160px;margin:0 auto;padding:0 28px;height:92px;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(130,212,247,.22)}
+.public-nav .links{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:flex-end}
+.public-nav .links a{color:#e9f7ff;text-decoration:none;font:700 9px "DM Mono",monospace;letter-spacing:.1em;white-space:nowrap}
+.public-nav .links a:hover{color:#82d4f7}
+.public-page{background:#f7f5f0!important;color:#06233e!important}
+.public-page-body{background:#f7f5f0;color:#06233e}
+.public-page-body h2,.public-page-body h3,.public-page-body strong,.public-page-body b{color:#06233e}
+.public-page-body p,.public-page-body span,.public-page-body small{color:#45687d}
+.public-fixture{background:#fff;color:#06233e;border:1px solid #d5e0e6;margin-bottom:8px}
+.public-fixture>div,.public-fixture>strong,.public-fixture>b{color:#06233e}
+.public-fixture small{color:#527084}
+.public-fixture.is-nac{background:#d9f1fe;color:#06233e;border-left:5px solid #4ba9d7}
+.public-table{background:#fff;color:#06233e;border:1px solid #d5e0e6}
+.public-table th{background:#06233e;color:#fff;font-weight:800}
+.public-table td{color:#06233e;background:#fff}
+.public-table tr:nth-child(even) td{background:#eef4f7}
+.public-table tr.is-nac td{background:#c9ecfb!important;color:#06233e!important;font-weight:800}
+.public-table td b{color:#06233e}
+.public-card,.staff-person,.sponsor-card,.fan-page-form,.empty-note{color:#06233e}
+
+@media(max-width:900px){.public-nav{height:auto;min-height:92px;align-items:flex-start;padding-top:18px;padding-bottom:18px}.public-nav .links{gap:12px}}
+@media(max-width:700px){.public-nav{display:block;padding:16px 18px}.public-nav .brand{margin-bottom:14px}.public-nav .links{display:flex!important;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:2px 0 8px;scrollbar-width:thin}.public-nav .links a{font-size:9px}.public-page-head .links{display:flex!important}.public-page-head{padding-top:0}.public-page-title{margin-top:30px}.public-table{min-width:700px}.public-fixture{padding:14px}.memorial-nav-wrap .public-nav,.historyHero .public-nav{margin-left:-14px;margin-right:-14px;width:auto}}
