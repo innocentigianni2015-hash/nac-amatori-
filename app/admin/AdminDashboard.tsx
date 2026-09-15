@@ -17,7 +17,7 @@ type Snapshot={players:Player[];staff:Staff[];events:Event[];attendance:Attendan
 const NAC_TEAM="NAC AMATORI CASTELLANA";
 
 const groups=["Portieri","Difensori","Centrocampisti","Attaccanti"];
-const media=(key:string|null)=>key?`/api/media/${key.split("/").map(encodeURIComponent).join("/")}`:"/nac-scudetto.png";
+const media=(key:string|null)=>!key?"/nac-scudetto.png":key.startsWith("/")?key:`/api/media/${key.split("/").map(encodeURIComponent).join("/")}`;
 const localDate=(value:string)=>new Intl.DateTimeFormat("it-IT",{dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
 
 export default function AdminDashboard({initialData,userName,signOutPath}:{initialData:Snapshot;userName:string;signOutPath:string}) {

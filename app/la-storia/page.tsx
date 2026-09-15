@@ -23,7 +23,7 @@ export default async function LaStoria() {
 
     <section className="archiveSection">
       <div className="archiveHead"><small>02 — ARCHIVIO FOTOGRAFICO</small><h2>Le stagioni<br/><em>in una foto.</em></h2><p>Volti, maglie e gruppi diversi. La stessa NAC, stagione dopo stagione.</p></div>
-      <div className="seasonGrid">{seasons.map((season,index)=>{const label=season.replace("-","/");const key=st[`media_history_${season}`];const src=key?`/api/media/${key.split("/").map(encodeURIComponent).join("/")}`:`/storia/${season}.jpeg`;return <figure className={index%4===0?"wide":""} key={season}><img src={src} alt={`NAC Amatori Castellana stagione ${label}`}/><figcaption><span>STAGIONE</span><b>{label}</b></figcaption></figure>})}</div>
+      <div className="seasonGrid">{seasons.map((season,index)=>{const label=season.replace("-","/");const key=st[`media_history_${season}`];const src=key?(key.startsWith("/")?key:`/api/media/${key.split("/").map(encodeURIComponent).join("/")}`):`/storia/${season}.jpeg`;return <figure className={index%4===0?"wide":""} key={season}><img src={src} alt={`NAC Amatori Castellana stagione ${label}`}/><figcaption><span>STAGIONE</span><b>{label}</b></figcaption></figure>})}</div>
     </section>
 
     <section className="historyClosing"><small>DAL 2011, INSIEME.</small><h2>Il calcio passa.<br/><em>Il gruppo resta.</em></h2><a href="/" className="historyButton">TORNA ALLA NAC →</a></section>
