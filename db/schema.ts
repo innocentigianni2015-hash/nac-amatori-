@@ -10,6 +10,8 @@ export const admins = sqliteTable("admins", {
   email: text("email").primaryKey(),
   name: text("name"),
   role: text("role").notNull().default("owner"),
+  permissions: text("permissions").notNull().default(""),
+  passwordHash: text("password_hash"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
@@ -105,6 +107,18 @@ export const matches = sqliteTable("matches", {
   sourceAnomaly: integer("source_anomaly", { mode: "boolean" }).notNull().default(false),
   ...timestamps,
 }, (table) => [index("matches_schedule_idx").on(table.scheduledAt), index("matches_round_idx").on(table.phase, table.round)]);
+
+export const articles = sqliteTable("articles", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  body: text("body").notNull().default(""),
+  imageKey: text("image_key"),
+  status: text("status").notNull().default("draft"),
+  authorEmail: text("author_email").notNull(),
+  publishedAt: text("published_at"),
+  ...timestamps,
+}, (table) => [index("articles_status_idx").on(table.status, table.publishedAt, table.createdAt)]);
 
 export const siteSettings = sqliteTable("site_settings", {
   key: text("key").primaryKey(),

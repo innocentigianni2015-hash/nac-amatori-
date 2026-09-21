@@ -1,5 +1,5 @@
 import { chatGPTSignOutPath, requireChatGPTUser } from "@/app/chatgpt-auth";
-import { ensureFirstAdmin, getAdminSnapshot } from "@/lib/nac-data";
+import { ensureFirstAdmin,getAdminSnapshot,hasPermission } from "@/lib/nac-data";
 import "./admin.css";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,14 @@ export default async function AdminPage(){
   const user=await requireChatGPTUser("/admin");
   const allowed=await ensureFirstAdmin(user.email,user.displayName);
   if(!allowed)return <main className="admin-denied"><h1>Accesso non autorizzato</h1></main>;
-  const data=await getAdminSnapshot();
+  const data=await getAdminSnapshot(user.email);
+  const current=data.currentAdmin;
+  const canViewMagazine=hasPermission(current,"magazine_view")||hasPermission(current,"magazine_share")||hasPermission(current,"magazine_manage");
+  const canManageMagazine=hasPermission(current,"magazine_manage");
+  if(current?.role!=="owner"){
+    if(!canViewMagazine)return <main className="admin-denied"><h1>Accesso non autorizzato</h1></main>;
+    return <main className="admin-server staff-magazine-only" style={{paddingLeft:0}}><header className="admin-server-head"><div><img src="/nac-scudetto.png" alt="NAC"/><div><small>AREA STAFF NAC</small><h1>Magazine Staff</h1></div></div><nav><a href="/magazine">Apri Magazine</a><a href={chatGPTSignOutPath("/")}>Esci</a></nav></header><MagazineSection articles={data.articles} canManage={canManageMagazine}/></main>;
+  }
   const nacMatches=data.matches.filter(m=>m.home===NAC||m.away===NAC);
   return <main className="admin-server">
     <header className="admin-server-head"><div><img src="/nac-scudetto.png" alt="NAC"/><div><small>AREA RISERVATA NAC</small><h1>Gestione squadra</h1></div></div><nav><a href="/">Apri il sito</a><a href={chatGPTSignOutPath("/")}>Esci</a></nav></header>
@@ -24,6 +31,7 @@ export default async function AdminPage(){
       <div className="admin-nav-group"><span>SQUADRA</span><a href="#rosa"><b>Giocatori</b><small>Foto, ruoli e rosa</small></a><a href="#staff"><b>Dirigenti e staff</b><small>Società e staff tecnico</small></a><a href="#agenda"><b>Allenamenti ed eventi</b><small>Date e appuntamenti</small></a></div>
       <div className="admin-nav-group"><span>CAMPIONATO</span><a href="#campionato"><b>Partite e risultati</b><small>Inserisci o correggi risultati</small></a></div>
       <div className="admin-nav-group"><span>SITO</span><a href="#contenuti"><b>Testi del sito</b><small>Modifica le informazioni</small></a><a href="#media"><b>Foto del sito</b><small>Carica o sostituisci immagini</small></a><a href="#sponsor"><b>Sponsor</b><small>Loghi e collegamenti</small></a></div>
+      <div className="admin-nav-group"><span>MAGAZINE</span><a href="#magazine"><b>Articoli</b><small>Scrivi, salva e pubblica</small></a><a href="#accessi"><b>Permessi staff</b><small>Autorizza collaboratori</small></a></div>
       <div className="admin-nav-group"><span>COMMUNITY</span><a href="#community"><b>Voti e messaggi</b><small>Controlla ciò che inviano i tifosi</small></a></div>
       <div className="admin-nav-bottom"><a href="/">Apri sito pubblico</a><a href={chatGPTSignOutPath("/")}>Esci dall'Admin</a></div>
     </nav>
@@ -35,6 +43,7 @@ export default async function AdminPage(){
         <a href="#campionato"><b>Inserisci un risultato</b><span>La classifica si aggiorna automaticamente</span></a>
         <a href="#media"><b>Cambia una foto del sito</b><span>Home, storia e immagini principali</span></a>
         <a href="#sponsor"><b>Gestisci uno sponsor</b><span>Logo, nome e sito web</span></a>
+        <a href="#magazine"><b>Scrivi un articolo</b><span>Titolo, descrizione, testo e foto</span></a>
         <a href="#community"><b>Controlla voti e messaggi</b><span>Approva, archivia o elimina</span></a>
       </div>
     </section>
@@ -72,6 +81,9 @@ export default async function AdminPage(){
 
     <section id="sponsor" className="admin-server-block"><Title eyebrow="SPONSOR" title="Sponsor e amici" text="Crea, modifica, ordina e carica i loghi degli sponsor."/><form className="admin-add-form" method="post" action="/api/admin/manage"><Hidden action="sponsor.create" section="sponsor"/><input name="name" placeholder="Nome sponsor" required/><input name="website" placeholder="Sito web"/><input type="number" name="sortOrder" defaultValue="0"/><button>Aggiungi sponsor</button></form><div className="admin-manage-grid">{data.sponsors.map(s=><article className="admin-manage-card" key={s.id}><form method="post" action="/api/admin/manage"><Hidden action="sponsor.update" section="sponsor" id={s.id}/><img src={media(s.logoKey)} alt=""/><input name="name" defaultValue={s.name}/><input name="website" defaultValue={s.website}/><input type="number" name="sortOrder" defaultValue={s.sortOrder}/><label className="check"><input type="checkbox" name="active" defaultChecked={Boolean(s.active)}/> Visibile</label><button>Salva</button></form><form className="upload-line" method="post" action="/api/admin/manage" encType="multipart/form-data"><Hidden action="upload.sponsor" section="sponsor" id={s.id}/><input type="file" name="file" accept="image/*" required/><button>Carica logo</button></form><form method="post" action="/api/admin/manage"><Hidden action="sponsor.delete" section="sponsor" id={s.id}/><button className="danger">Elimina</button></form></article>)}</div></section>
 
+    <MagazineSection articles={data.articles} canManage={true}/>
+    <AccessSection admins={data.admins}/>
+
     <section id="community" className="admin-server-block"><Title eyebrow="TIFOSI" title="Voti e messaggi" text="Approva, archivia o elimina i contributi inviati dal pubblico."/><div className="admin-community-grid"><div><h3>Voti</h3>{data.votes.map(v=><form className="community-row" key={v.id} method="post" action="/api/admin/manage"><Hidden action="vote.status" section="community" id={v.id}/><div><b>{v.playerName||"Giocatore"} · {v.rating}/5</b><p>{v.fanName}: {v.message}</p></div><select name="status" defaultValue={v.status}><option value="pending">In attesa</option><option value="approved">Approvato</option><option value="archived">Archiviato</option></select><button>Salva</button><button className="danger" name="_action" value="vote.delete">Elimina</button></form>)}</div><div><h3>Messaggi</h3>{data.messages.map(m=><form className="community-row" key={m.id} method="post" action="/api/admin/manage"><Hidden action="message.status" section="community" id={m.id}/><div><b>{m.playerName||"Squadra"}</b><p>{m.senderName}: {m.body}</p></div><select name="status" defaultValue={m.status}><option value="pending">In attesa</option><option value="approved">Approvato</option><option value="archived">Archiviato</option></select><button>Salva</button><button className="danger" name="_action" value="message.delete">Elimina</button></form>)}</div></div></section>
 
       <style>{`
@@ -106,6 +118,16 @@ export default async function AdminPage(){
   </main>;
 }
 
+function MagazineSection({articles,canManage}:{articles:Awaited<ReturnType<typeof getAdminSnapshot>>["articles"];canManage:boolean}){
+  return <section id="magazine" className="admin-server-block"><Title eyebrow="MAGAZINE" title="Articoli NAC" text={canManage?"Crea articoli con titolo, descrizione, testo e foto. Puoi salvarli in bozza o pubblicarli subito.":"Puoi consultare gli articoli del Magazine."}/>
+    {canManage&&<form className="admin-content-form magazine-editor" method="post" action="/api/admin/manage" encType="multipart/form-data"><Hidden action="article.create" section="magazine"/><Field label="Titolo" name="title"/><Field label="Descrizione breve" name="description" area/><Field label="Testo articolo" name="body" area/><label><span>Foto articolo</span><input type="file" name="file" accept="image/*" required/></label><div className="magazine-actions"><button name="status" value="draft">Salva bozza</button><button name="status" value="published">Pubblica articolo</button></div></form>}
+    <div className="admin-manage-grid">{articles.map(a=><article className="admin-manage-card" key={a.id}>{a.imageKey&&<img src={media(a.imageKey)} alt=""/>}{canManage?<><form method="post" action="/api/admin/manage"><Hidden action="article.update" section="magazine" id={a.id}/><input name="title" defaultValue={a.title} required/><textarea name="description" defaultValue={a.description} required/><textarea name="body" defaultValue={a.body} required/><small>Stato: {a.status==="published"?"Pubblicato":"Bozza"}</small><div className="magazine-actions"><button name="status" value="draft">Salva bozza</button><button name="status" value="published">Pubblica</button></div></form><form className="upload-line" method="post" action="/api/admin/manage" encType="multipart/form-data"><Hidden action="article.upload" section="magazine" id={a.id}/><input type="file" name="file" accept="image/*" required/><button>Cambia foto</button></form><form method="post" action="/api/admin/manage"><Hidden action="article.delete" section="magazine" id={a.id}/><button className="danger">Elimina</button></form></>:<div><h3>{a.title}</h3><p>{a.description}</p><small>{a.status}</small></div>}</article>)}</div>
+  </section>
+}
+function AccessSection({admins}:{admins:Awaited<ReturnType<typeof getAdminSnapshot>>["admins"]}){
+  const staff=admins.filter(a=>a.role==="staff");
+  return <section id="accessi" className="admin-server-block"><Title eyebrow="PERMESSI" title="Accessi Staff Magazine" text="Crea un accesso personale e assegna solo le funzioni necessarie."/><form className="admin-add-form" method="post" action="/api/admin/manage"><Hidden action="access.create" section="accessi"/><input type="email" name="email" placeholder="Email staff" required/><input name="name" placeholder="Nome e cognome" required/><input type="password" name="password" placeholder="Password iniziale (min. 6)" required/><label className="check"><input type="checkbox" name="magazine_view" defaultChecked/> Vedi Magazine</label><label className="check"><input type="checkbox" name="magazine_share"/> Condividi social</label><label className="check"><input type="checkbox" name="magazine_manage"/> Gestisci articoli</label><button>Autorizza staff</button></form><div className="admin-manage-grid">{staff.map(a=>{const p=a.permissions.split(",");return <article className="admin-manage-card" key={a.email}><form method="post" action="/api/admin/manage"><Hidden action="access.update" section="accessi"/><input type="hidden" name="email" value={a.email}/><input name="name" defaultValue={a.name||""}/><b>{a.email}</b><input type="password" name="password" placeholder="Nuova password (facoltativa)"/><label className="check"><input type="checkbox" name="magazine_view" defaultChecked={p.includes("magazine_view")}/> Vedi Magazine</label><label className="check"><input type="checkbox" name="magazine_share" defaultChecked={p.includes("magazine_share")}/> Condividi social</label><label className="check"><input type="checkbox" name="magazine_manage" defaultChecked={p.includes("magazine_manage")}/> Gestisci articoli</label><button>Salva permessi</button></form><form method="post" action="/api/admin/manage"><Hidden action="access.delete" section="accessi"/><input type="hidden" name="email" value={a.email}/><button className="danger">Revoca accesso</button></form></article>})}</div></section>
+}
 function Hidden({action,section,id}:{action:string;section:string;id?:string}){return <><input type="hidden" name="action" value={action}/><input type="hidden" name="section" value={section}/>{id&&<input type="hidden" name="id" value={id}/>}</>}
 function Title({eyebrow,title,text}:{eyebrow:string;title:string;text:string}){return <div className="admin-server-title"><small>{eyebrow}</small><h2>{title}</h2><p>{text}</p></div>}
 function Field({label,name,value,area=false}:{label:string;name:string;value?:string;area?:boolean}){return <label><span>{label}</span>{area?<textarea name={name} defaultValue={value||""}/>:<input name={name} defaultValue={value||""}/>}</label>}
