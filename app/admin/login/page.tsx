@@ -9,6 +9,7 @@ export default function AdminLoginPage(){
     <img src="/nac-scudetto.png" alt="NAC"/><small>NAC CONTROL ROOM</small><h1>Accesso Staff</h1><p>Accedi con l'email autorizzata e la tua password.</p>
     <input type="email" autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" required/>
     <input type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" required/>
-    <button type="submit" disabled={busy}>{busy?"ACCESSO…":"ENTRA"}</button>{error&&<p className="admin-login-error">{error}</p>}<a href="/">← Torna al sito</a>
+    <button type="submit" disabled={busy}>{busy?"ACCESSO…":"ENTRA"}</button>{error&&<p className="admin-login-error">{error}</p>}
+    <a href="/admin/password-dimenticata">Password dimenticata?</a><a href="/">← Torna al sito</a>
   </form></main>
 }
