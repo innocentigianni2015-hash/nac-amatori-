@@ -13,13 +13,18 @@ function go(request:Request, section:string, ok=true, message="") {
 const val=(f:FormData,k:string,max=2400)=>cleanText(f.get(k),max);
 const num=(f:FormData,k:string)=>Number(f.get(k));
 
-async function upload(form:FormData, entity:string, id:string){
-  if(!env.BUCKET) throw new Error("Archivio immagini non disponibile");
+async function upload(form:FormData, entity:string, id:string, kind:"image"|"introVideo"|"articleVideo"="image"){
+  if(!env.BUCKET) throw new Error("Archivio media non disponibile");
   const file=form.get("file");
-  if(!(file instanceof File)||!file.size) throw new Error("Seleziona un'immagine");
-  if(!file.type.startsWith("image/")||file.size>8*1024*1024) throw new Error("Usa JPG, PNG o WEBP fino a 8 MB");
-  const ext=(file.name.split(".").pop()||"jpg").replace(/[^a-z0-9]/gi,"").toLowerCase()||"jpg";
-  const key=`${entity==="setting"?"site":entity+"s"}/${id}/${crypto.randomUUID()}.${ext}`;
+  if(!(file instanceof File)||!file.size) throw new Error("Seleziona un file");
+  const isVideo=kind!=="image";
+  if(isVideo){
+    if(!file.type.startsWith("video/")||file.size>50*1024*1024) throw new Error("Usa un video MP4, MOV o WEBM fino a 50 MB");
+  }else if(!file.type.startsWith("image/")||file.size>8*1024*1024) throw new Error("Usa JPG, PNG o WEBP fino a 8 MB");
+  const ext=(file.name.split(".").pop()||(isVideo?"mp4":"jpg")).replace(/[^a-z0-9]/gi,"").toLowerCase()||(isVideo?"mp4":"jpg");
+  const folder=entity==="setting"?"site":entity+"s";
+  const sub=isVideo?(kind==="introVideo"?"intro":"article-video"):"image";
+  const key=`${folder}/${id}/${sub}/${crypto.randomUUID()}.${ext}`;
   await env.BUCKET.put(key,file.stream(),{httpMetadata:{contentType:file.type}});
   const db=getD1();
   if(entity==="setting"){
@@ -30,7 +35,7 @@ async function upload(form:FormData, entity:string, id:string){
     return;
   }
   const table=entity==="player"?"players":entity==="staff"?"staff":entity==="article"?"articles":"sponsors";
-  const column=entity==="sponsor"?"logo_key":entity==="article"?"image_key":"photo_key";
+  const column=entity==="sponsor"?"logo_key":entity==="article"?(kind==="introVideo"?"intro_video_key":kind==="articleVideo"?"article_video_key":"image_key"):"photo_key";
   const prev=await db.prepare(`SELECT ${column} AS oldKey FROM ${table} WHERE id=?`).bind(id).first<{oldKey:string|null}>();
   await db.prepare(`UPDATE ${table} SET ${column}=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(key,id).run();
   if(prev?.oldKey && !prev.oldKey.startsWith("/")) await env.BUCKET.delete(prev.oldKey);
@@ -48,20 +53,32 @@ export async function POST(request:Request){
   if(action.startsWith("article.")&&!canManageMagazine) return go(request,section,false,"Non hai il permesso di gestire il Magazine");
   try{
     if(action==="article.create"){
-      const title=val(form,"title",180),description=val(form,"description",500),body=val(form,"body",12000),status=val(form,"status",20)==="published"?"published":"draft",id=uid("article");
-      if(!title||!description||!body) throw new Error("Titolo, descrizione e testo sono obbligatori");
-      await db.prepare("INSERT INTO articles (id,title,description,body,status,author_email,published_at) VALUES (?,?,?,?,?,?,?)").bind(id,title,description,body,status,auth.user!.email,status==="published"?new Date().toISOString():null).run();
+      const title=val(form,"title",180),description=val(form,"description",500),body=val(form,"body",12000),contentType=val(form,"contentType",20)==="video"?"video":"written",status=val(form,"status",20)==="published"?"published":"draft",id=uid("article");
+      if(!title||!description) throw new Error("Titolo e descrizione sono obbligatori");
+      if(contentType==="written"&&!body) throw new Error("Per un articolo scritto devi inserire il testo");
+      await db.prepare("INSERT INTO articles (id,title,description,body,content_type,status,author_email,published_at) VALUES (?,?,?,?,?,?,?,?)").bind(id,title,description,body,contentType,status,auth.user!.email,status==="published"?new Date().toISOString():null).run();
       const file=form.get("file");if(file instanceof File&&file.size)await upload(form,"article",id);
-      if(status==="published"){const row=await db.prepare("SELECT image_key AS imageKey FROM articles WHERE id=?").bind(id).first<{imageKey:string|null}>();if(!row?.imageKey)throw new Error("Per pubblicare devi aggiungere una foto")}
+      if(status==="published"){const row=await db.prepare("SELECT image_key AS imageKey,article_video_key AS articleVideoKey FROM articles WHERE id=?").bind(id).first<{imageKey:string|null;articleVideoKey:string|null}>();if(!row?.imageKey)throw new Error("Per pubblicare devi aggiungere una foto");if(contentType==="video"&&!row?.articleVideoKey)throw new Error("Per pubblicare un contenuto video devi caricare il secondo video")}
     } else if(action==="article.update"){
-      const id=val(form,"id",100),title=val(form,"title",180),description=val(form,"description",500),body=val(form,"body",12000),status=val(form,"status",20)==="published"?"published":"draft";
-      if(!id||!title||!description||!body) throw new Error("Compila tutti i campi dell'articolo");
-      if(status==="published"){const row=await db.prepare("SELECT image_key AS imageKey FROM articles WHERE id=?").bind(id).first<{imageKey:string|null}>();if(!row?.imageKey)throw new Error("Per pubblicare devi aggiungere una foto")}
-      await db.prepare("UPDATE articles SET title=?,description=?,body=?,status=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,CURRENT_TIMESTAMP) ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(title,description,body,status,status,id).run();
+      const id=val(form,"id",100),title=val(form,"title",180),description=val(form,"description",500),body=val(form,"body",12000),contentType=val(form,"contentType",20)==="video"?"video":"written",status=val(form,"status",20)==="published"?"published":"draft";
+      if(!id||!title||!description) throw new Error("Compila titolo e descrizione");
+      if(contentType==="written"&&!body) throw new Error("Per un articolo scritto devi inserire il testo");
+      if(status==="published"){const row=await db.prepare("SELECT image_key AS imageKey,article_video_key AS articleVideoKey FROM articles WHERE id=?").bind(id).first<{imageKey:string|null;articleVideoKey:string|null}>();if(!row?.imageKey)throw new Error("Per pubblicare devi aggiungere una foto");if(contentType==="video"&&!row?.articleVideoKey)throw new Error("Per pubblicare un contenuto video devi caricare il secondo video")}
+      await db.prepare("UPDATE articles SET title=?,description=?,body=?,content_type=?,status=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,CURRENT_TIMESTAMP) ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(title,description,body,contentType,status,status,id).run();
     } else if(action==="article.delete"){
-      const id=val(form,"id",100),row=await db.prepare("SELECT image_key AS imageKey FROM articles WHERE id=?").bind(id).first<{imageKey:string|null}>();await db.prepare("DELETE FROM articles WHERE id=?").bind(id).run();if(row?.imageKey&&!row.imageKey.startsWith("/"))await env.BUCKET?.delete(row.imageKey);
+      const id=val(form,"id",100),row=await db.prepare("SELECT image_key AS imageKey,intro_video_key AS introVideoKey,article_video_key AS articleVideoKey FROM articles WHERE id=?").bind(id).first<{imageKey:string|null;introVideoKey:string|null;articleVideoKey:string|null}>();await db.prepare("DELETE FROM articles WHERE id=?").bind(id).run();for(const key of [row?.imageKey,row?.introVideoKey,row?.articleVideoKey])if(key&&!key.startsWith("/"))await env.BUCKET?.delete(key);
     } else if(action==="article.upload"){
-      await upload(form,"article",val(form,"id",100));
+      await upload(form,"article",val(form,"id",100),"image");
+    } else if(action==="article.uploadIntroVideo"){
+      await upload(form,"article",val(form,"id",100),"introVideo");
+    } else if(action==="article.uploadArticleVideo"){
+      await upload(form,"article",val(form,"id",100),"articleVideo");
+    } else if(action==="article.removeMedia"){
+      const id=val(form,"id",100),kind=val(form,"mediaKind",30);
+      const column=kind==="introVideo"?"intro_video_key":kind==="articleVideo"?"article_video_key":"image_key";
+      const row=await db.prepare(`SELECT ${column} AS mediaKey FROM articles WHERE id=?`).bind(id).first<{mediaKey:string|null}>();
+      await db.prepare(`UPDATE articles SET ${column}=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(id).run();
+      if(row?.mediaKey&&!row.mediaKey.startsWith("/"))await env.BUCKET?.delete(row.mediaKey);
     } else if(action==="access.create"){
       if(!isOwner)throw new Error("Solo l'owner può gestire gli accessi");const email=val(form,"email",180).toLowerCase(),name=val(form,"name",120),password=val(form,"password",120);if(!email||!name||password.length<6)throw new Error("Email, nome e password di almeno 6 caratteri sono obbligatori");
       const permissions=["magazine_view","magazine_share","magazine_manage"].filter(k=>form.get(k)).join(",");await db.prepare("INSERT INTO admins (email,name,role,permissions,password_hash) VALUES (?,?,'staff',?,?)").bind(email,name,permissions,await hashPassword(password)).run();
