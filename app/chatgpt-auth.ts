@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export type ChatGPTUser={displayName:string;email:string;fullName:string|null};
-type AdminEnv={ADMIN_PASSWORD?:string;ADMIN_SESSION_SECRET?:string;DB?:D1Database};
+type AdminEnv={ADMIN_PASSWORD?:string;ADMIN_SESSION_SECRET?:string;ADMIN_RECOVERY_CODE?:string;DB?:D1Database};
 const COOKIE_NAME="nac_admin_session",SESSION_SECONDS=60*60*24*7,OWNER_EMAIL="admin@nacamatori.local";
 
 function adminEnv(){return env as unknown as AdminEnv}
@@ -13,10 +13,27 @@ function equal(a:string,b:string){if(a.length!==b.length)return false;let d=0;fo
 
 export async function verifyAdminCredentials(email:string,password:string){
   const clean=email.trim().toLowerCase();
-  if(clean===OWNER_EMAIL){const expected=adminEnv().ADMIN_PASSWORD||"";if(!equal(password,expected))return false;if(adminEnv().DB)await adminEnv().DB!.prepare("INSERT OR IGNORE INTO admins (email,name,role,permissions) VALUES (?,?, 'owner','*')").bind(OWNER_EMAIL,"Gianni Innocenti").run();return true}
+  if(clean===OWNER_EMAIL){
+    const db=adminEnv().DB;
+    if(db){
+      const row=await db.prepare("SELECT password_hash AS passwordHash FROM admins WHERE email=? AND role='owner'").bind(OWNER_EMAIL).first<{passwordHash:string|null}>();
+      if(row?.passwordHash&&equal(await hashPassword(password),row.passwordHash))return true;
+    }
+    const expected=adminEnv().ADMIN_PASSWORD||"";
+    if(!equal(password,expected))return false;
+    if(db)await db.prepare("INSERT OR IGNORE INTO admins (email,name,role,permissions) VALUES (?,?, 'owner','*')").bind(OWNER_EMAIL,"Gianni Innocenti").run();
+    return true;
+  }
   if(!adminEnv().DB)return false;
   const row=await adminEnv().DB!.prepare("SELECT password_hash AS passwordHash FROM admins WHERE email=? AND role='staff'").bind(clean).first<{passwordHash:string|null}>();
   return Boolean(row?.passwordHash)&&equal(await hashPassword(password),row!.passwordHash!);
+}
+export async function resetOwnerPassword(email:string,recoveryCode:string,newPassword:string){
+  const clean=email.trim().toLowerCase(),expected=adminEnv().ADMIN_RECOVERY_CODE||"";
+  if(clean!==OWNER_EMAIL||!expected||!equal(recoveryCode,expected)||newPassword.length<10||!adminEnv().DB)return false;
+  await adminEnv().DB!.prepare("INSERT OR IGNORE INTO admins (email,name,role,permissions) VALUES (?,?, 'owner','*')").bind(OWNER_EMAIL,"Gianni Innocenti").run();
+  await adminEnv().DB!.prepare("UPDATE admins SET password_hash=? WHERE email=? AND role='owner'").bind(await hashPassword(newPassword),OWNER_EMAIL).run();
+  return true;
 }
 export async function getChatGPTUser():Promise<ChatGPTUser|null>{
   const h=await headers(),cookie=h.get("cookie")||"",token=cookie.split(/;\s*/).find(x=>x.startsWith(`${COOKIE_NAME}=`))?.split("=")[1];if(!token)return null;
